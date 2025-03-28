@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import apiClient from '../config/apiClient';
 
-export const useUserStore = create((set) => ({
+export const useUserStore = create((set, get) => ({
   isAuth: false,
   isLoading: true,
 
@@ -18,7 +18,7 @@ export const useUserStore = create((set) => ({
   // Регистрация пользователя
   register: async (data) => {
     try {
-      const response = await apiClient.post('/api/auth/register', data, { 
+      const response = await apiClient.post('/api/auth/reg', data, { 
         withCredentials: true 
       });
       return response;
@@ -36,7 +36,7 @@ export const useUserStore = create((set) => ({
       
       if (response.status >= 200 && response.status < 300) {
         set({ isAuth: true });
-        await useUserStore.getState().checkAuth(); // Проверяем статус после входа
+        await get().checkAuth(); // Используем get() вместо прямого вызова
       }
       return response;
     } catch (error) {
@@ -49,7 +49,6 @@ export const useUserStore = create((set) => ({
     try {
       await apiClient.post('/api/auth/logout', {}, { withCredentials: true });
       set({ isAuth: false });
-      window.location.href = '/login'; // Перенаправляем на страницу входа
     } catch (error) {
       console.error('Logout failed:', error);
       throw error;
@@ -60,5 +59,3 @@ export const useUserStore = create((set) => ({
 
 export default useUserStore;
 
-// Инициализация проверки аутентификации при загрузке хранилища
-// useUserStore.getState().checkAuth();

@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Header.css';
 import useUserStore from '../store/UserStore';
 
+
 const Header = () => {
   const navigate = useNavigate();
   // Берем нужные данные из хранилища
@@ -17,9 +18,13 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/'); // Переходим на главную
+      if (!useUserStore.getState().isAuth) {
+        navigate('/login'); // Перенаправляем на страницу входа
+      }
     } catch (error) {
       console.error('Ошибка при выходе:', error);
+      // Добавили уведомление пользователя об ошибке
+      alert('Не удалось выйти. Попробуйте ещё раз.');
     }
   };
 
@@ -34,12 +39,16 @@ const Header = () => {
       <nav>
         <ul>
           <li><Link to="/">Главная</Link></li>
-          
+          <li><Link to="/rooms">Номера</Link></li>
+          <li><Link to="/services">Услуги</Link></li>
+
+
           {/* Если НЕ авторизован - показываем регистрацию/вход */}
           {!isAuth ? (
             <>
               <li><Link to="/register">Регистрация</Link></li>
               <li><Link to="/login">Вход</Link></li>
+              
             </>
           ) : (
             <>
