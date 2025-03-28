@@ -1,0 +1,57 @@
+.header {
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 15px 100px;
+  background-color: #7a3faa;
+  color: white;
+  position: fixed; /* Фиксируем шапку вверху */
+  top: 0;
+  left: 0;
+  color: white;
+  z-index: 1000;
+}
+  
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+}
+  
+.header nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+  
+.header nav ul li {
+  display: inline-block;
+  margin-right: 20px;
+}
+  
+.header nav a {
+  color: white;
+  text-decoration: none;
+}
+  
+.header nav a:hover {
+  color: #ccc;
+}
+
+
+.logout-button {
+  background: none;
+  border: 1px solid #ffffff;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  padding: 10px;
+  margin: 0;
+  text-decoration: none;
+}
+
+.logout-button:hover {
+  background: white;
+  color: black;
+}
