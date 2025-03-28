@@ -1,10 +1,16 @@
 package ru.flamexander.spring.security.jwt.controllers;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.BindingResult;
@@ -25,11 +31,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 
-
-@RestController //аннотация указывает, что данный класс является контроллером REST, который отвечает за обработку HTTP-запросов и
-// возвращение ответов в формате JSON.
-@RequiredArgsConstructor // Эта аннотация от Lombok упрощает создание конструктора, который инициализирует все поля класса, помеченные как `final`.
-// В данном случае, она сгенерирует конструктор с параметром `AuthService authService`, который будет автоматически внедрён Spring'ом (dependency injection).
+@Slf4j
+@RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class AuthController {
@@ -37,11 +40,19 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenUtils jwtTokenUtils;
 
+    @Autowired
+    public AuthController(AuthService authService, AuthenticationManager authenticationManager, JwtTokenUtils jwtTokenUtils) {
+        this.authService = authService;
+        this.authenticationManager = authenticationManager;
+        this.jwtTokenUtils = jwtTokenUtils;
+    }
 
     @PostMapping("/reg")
     public ResponseEntity<?> createNewUser(@Valid @RequestBody RegistrationUserDto registrationUserDto, BindingResult bindingResult) {
+        log.info("Пришел запрос на регистрацию");
 
         if (bindingResult.hasErrors()) {
+            log.info("Ошибка валидации данных");
             List<String> errors = bindingResult.getFieldErrors()
                     .stream()
                     .map(FieldError::getDefaultMessage)
@@ -49,38 +60,78 @@ public class AuthController {
             return ResponseEntity.badRequest().body(errors);
         }
 
+        log.info("Данные валидированы успешно");
         return authService.createNewUser(registrationUserDto);
     }
 
 
-    @PostMapping("/check")
-    public ResponseEntity<?> createAuthToken(@RequestBody JwtRequest authRequest, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtTokenUtils.generateToken((UserDetails) authentication.getPrincipal());
-
-        Cookie cookie = new Cookie("JWT", jwt);
-        cookie.setHttpOnly(true); // Защита от XSS атак
-        cookie.setSecure(true); // Использовать только через HTTPS (если у вас настроен HTTPS)
-        cookie.setPath("/"); // Доступно для всех путей
-        cookie.setMaxAge(3600); // Время жизни 1 час
-
-        response.addCookie(cookie); // Добавляем cookie в ответ
-
-//        return ResponseEntity.ok(jwt);
-
-        // Возвращаем токен в JSON-формате
-        return ResponseEntity.ok()
-                .header("Content-Type", "application/json")
-                .body(new JwtResponse(jwt));
+    @GetMapping("/check")
+    public ResponseEntity<?> checkAuth() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.status(401).build();
     }
 
 
     @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody JwtRequest authRequest, HttpServletResponse response) {
+        log.info("Пришел запрос на вход");
+
+        try {
+            // Аутентификация пользователя
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
+            log.info("Аутентификация прошла успешно");
+
+            // Установка аутентификации в SecurityContext
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Генерация JWT токена
+            String jwt = jwtTokenUtils.generateToken((UserDetails) authentication.getPrincipal());
+            log.info("Токен сгенерирован успешно");
+
+            // Создание безопасной cookie с использованием ResponseCookie
+            ResponseCookie cookie = ResponseCookie.from("JWT", jwt)
+                    .httpOnly(true)      // Защита от XSS атак (недоступно через JavaScript)
+                    .secure(true)        // Отправка только по HTTPS (обязательно для SameSite=None)
+                    .path("/")          // Доступно для всех путей на домене
+                    .maxAge(3600)        // Время жизни 1 час (в секундах)
+                    .sameSite("None")    // Разрешаем кросс-сайтовые запросы (требуется для фронтенда на другом порту)
+                    .build();            // Финальная сборка cookie
+
+            // Добавление cookie в заголовок ответа
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+            log.info("Secure cookie с токеном добавлен в заголовки ответа");
+
+            // Возвращаем токен в JSON-формате
+            return ResponseEntity.ok()
+                    .header("Content-Type", "application/json")
+                    .body(new JwtResponse(jwt));
+
+        } catch (AuthenticationException e) {
+            log.error("Ошибка аутентификации", e);
+            return ResponseEntity.badRequest().body("Неправильный логин или пароль");
+        }
+    }
 
     @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("JWT", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("None")
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        return ResponseEntity.ok("Выход выполнен успешно");
+    }
+}
+
+
 
 
 
@@ -127,4 +178,4 @@ public class AuthController {
 //    }
 
 
-}
+

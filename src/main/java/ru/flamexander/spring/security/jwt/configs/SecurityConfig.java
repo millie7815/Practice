@@ -21,7 +21,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import ru.flamexander.spring.security.jwt.service.UserService;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -41,16 +46,21 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
+                .cors().configurationSource(corsConfigurationSource())
+                .and()
                 .csrf().disable()
+                .exceptionHandling()
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                .and()
                 .authorizeRequests()
-                .antMatchers("/public/**").permitAll() // Доступные всем маршруты
-                .antMatchers("/reg").permitAll() // Разрешить доступ к маршруту регистрации
-                .antMatchers("/auth").permitAll()
-                .antMatchers("/private/**").authenticated() // Защищенные маршруты
-                .anyRequest().denyAll() // Запретить все остальные запросы
+                .antMatchers("/public/**").permitAll()
+                .antMatchers("/api/auth/**").permitAll()
+                .antMatchers("/api/services/**").permitAll()
+                .antMatchers("/private/**").authenticated()
+                .anyRequest().denyAll()
                 .and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
+                .and() // обрабатывать JWT токены. Это означает, что запросы к защищённым эндпоинтам (/private/**) не будут проверяться на наличие валидного токена.
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
     }
 
@@ -75,6 +85,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
+    }
+
+
+    //При авторизации ошибка выходила, поэтому добавили этот код
+    // Хотя вы включили CORS (.cors()), но не предоставили конфигурацию для него. Вам нужно добавить @Bean для CORS конфигурации.
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
 }

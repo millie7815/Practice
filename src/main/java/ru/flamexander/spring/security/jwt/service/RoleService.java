@@ -80,6 +80,18 @@ public class RoleService {
 
 
 
+    public Optional<Role> getRoleByName(String roleName) {
+        return roleRepository.findByName(roleName);
+    }
+
+    public Integer getRoleIdByName(String roleName) {
+        return roleRepository.findByName(roleName)
+                .map(Role::getId)
+                .orElseThrow(() -> new RuntimeException("Роль не найдена"));
+    }
+
+
+
 
 }
 

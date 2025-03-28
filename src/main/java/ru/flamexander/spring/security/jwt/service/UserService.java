@@ -24,6 +24,9 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
+    public boolean existsByUsername(String username) {
+        return findByUsername(username).isPresent();
+    }
 
     @Autowired
     public UserService(UserRepository userRepository, RoleService roleService, PasswordEncoder passwordEncoder) {
