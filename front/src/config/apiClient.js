@@ -6,7 +6,8 @@ import axios from "axios";
     withCredentials:true
     // ,
     // headers: {
-    //     'Content-Type': 'application/json'
-    // }
+    //     'Content-Type': 'application/json',
+    //     'Accept': 'application/json'
+    //   }
 });
 export default apiClient; // Экспорт по умолчанию

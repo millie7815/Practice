@@ -41,7 +41,7 @@ export default class UserAPI {
     }
   }
 
-  // Добавляем новый метод для выхода
+  
   static async logout() {
     try {
       await apiClient.post('/api/auth/logout', {}, {

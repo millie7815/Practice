@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import apiClient from '../config/apiClient'; // Используем apiClient вместо login
+import useUserStore from '../store/UserStore'; // Импортируем наше хранилище
 import '../styles/LoginPage.css';
 
 const LoginPage = () => {
@@ -9,31 +9,34 @@ const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false); // Добавляем состояние загрузки
+  const { login, isAuth } = useUserStore(); // Используем методы из хранилища
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
 
     try {
-      // Отправляем запрос через apiClient с withCredentials
-      const response = await apiClient.post(
-        '/api/auth/login',{ username, password }, { withCredentials: true });
+      // Используем метод login из нашего хранилища
+      await login({ username, password });
       
-      // Перенаправляем на предыдущую защищенную страницу, куда юзер хотел или на главную
-      const from = location.state?.from?.pathname || '/';
-      navigate(from, { replace: true });
-      
+      // Если авторизация успешна (isAuth = true), перенаправляем
+      if (isAuth) {
+        const from = location.state?.from?.pathname || '/';
+        navigate(from, { replace: true });
+      } else {
+        setError('Неверные учетные данные');
+      }
     } catch (error) {
-      // Обрабатываем ошибку
-      setError(
-        error.response?.data?.message || 
-        error.message || 
-        'Произошла ошибка при входе'
-      );
-    } finally {
-      setIsLoading(false);
+      // Обрабатываем ошибку CORS и другие ошибки
+      if (error.message.includes('Network Error') || !error.response) {
+        setError('Проблемы с соединением. Проверьте CORS на сервере.');
+      } else {
+        setError(
+          error.response?.data?.message || 
+          error.message || 
+          'Произошла ошибка при входе'
+        );
+      }
     }
   };
 
@@ -49,7 +52,6 @@ const LoginPage = () => {
           onChange={(e) => setUsername(e.target.value)}
           placeholder="Имя пользователя"
           required
-          disabled={isLoading}
           autoComplete="username"
         />
         
@@ -59,12 +61,11 @@ const LoginPage = () => {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Пароль"
           required
-          disabled={isLoading}
           autoComplete="current-password"
         />
         
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Вход...' : 'Войти'}
+        <button type="submit">
+          Войти
         </button>
         
         <div className="register-link">
@@ -76,5 +77,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-
-

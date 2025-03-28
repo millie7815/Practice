@@ -1,17 +1,64 @@
-import { atom } from "jotai";
+import { create } from 'zustand';
+import apiClient from '../config/apiClient';
 
-export const isAuth = atom(false);
+export const useUserStore = create((set) => ({
+  isAuth: false,
+  isLoading: true,
 
-export async function registerUser(data){
-    const response = await UserAPI.register(data);
-    console.log(response);
-}
-
-//Проверяем аутентификацию, и если все верно(response 200 с чем-то, если данные верны и тп), то возвращаем тру
-export async function loginUser(data){
-    const response = await UserAPI.login(data);
-    if(response.status>=200 && response.status<300){
-       return true;
+  // Проверка аутентификации при загрузке
+  checkAuth: async () => {
+    try {
+      await apiClient.get('/api/auth/check', { withCredentials: true });
+      set({ isAuth: true, isLoading: false });
+    } catch {
+      set({ isAuth: false, isLoading: false });
     }
-    console.log(response);
-}
+  },
+
+  // Регистрация пользователя
+  register: async (data) => {
+    try {
+      const response = await apiClient.post('/api/auth/register', data, { 
+        withCredentials: true 
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Вход пользователя
+  login: async (data) => {
+    try {
+      const response = await apiClient.post('/api/auth/login', data, { 
+        withCredentials: true 
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        set({ isAuth: true });
+        await useUserStore.getState().checkAuth(); // Проверяем статус после входа
+      }
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Выход пользователя
+  logout: async () => {
+    try {
+      await apiClient.post('/api/auth/logout', {}, { withCredentials: true });
+      set({ isAuth: false });
+      window.location.href = '/login'; // Перенаправляем на страницу входа
+    } catch (error) {
+      console.error('Logout failed:', error);
+      throw error;
+    }
+  },
+}));
+
+
+export default useUserStore;
+
+// Инициализация проверки аутентификации при загрузке хранилища
+// useUserStore.getState().checkAuth();
