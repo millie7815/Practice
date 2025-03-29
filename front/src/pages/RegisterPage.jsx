@@ -1,9 +1,10 @@
 // src/pages/RegisterPage.jsx
 import React, { useState } from "react";
-import { useNavigate } from 'react-router-dom';
-import UserAPI from '../api/UserAPI';
+import { useNavigate, Link } from 'react-router-dom';
 import '../styles/RegisterPage.css';
 import useUserStore from '../store/UserStore'; // Добавляем использование хранилища
+import '../styles/LoginPage.css';
+import bg from '../assets/images/номера.png'; 
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -47,6 +48,9 @@ const RegisterPage = () => {
 
   return (
     <div className="register-container">
+      <div className="bg">
+        <img src={bg} alt="" className="bg" />
+      </div>
       <form onSubmit={handleSubmit} className="register-form">
         <h2>Регистрация</h2>
         {errors.general && <div className="error-message">{errors.general}</div>}
@@ -109,6 +113,10 @@ const RegisterPage = () => {
         >
           {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
         </button>
+
+        <div className="login-link">
+          <Link to="/login">Уже есть аккаунт?</Link>
+        </div>
       </form>
     </div>
   );

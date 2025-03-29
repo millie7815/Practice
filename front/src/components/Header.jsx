@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Header.css';
 import useUserStore from '../store/UserStore';
+import logo from '../assets/images/logo.png'; 
 
 
 const Header = () => {
@@ -14,6 +15,12 @@ const Header = () => {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+
+  const handleLogin = () => {
+    navigate('/login'); // Просто переход без лишней логики
+  };
+
 
   const handleLogout = async () => {
     try {
@@ -35,20 +42,30 @@ const Header = () => {
 
   return (
     <header className="header">
-      <div className="logo">Логотип</div>
-      <nav>
+      <div className="container">
+      <div className="logo">
+        <img src={logo} alt="Логотип отеля" className="logo-image" />
+      </div>
+      
+      <nav className='main-nav'>
         <ul>
-          <li><Link to="/">Главная</Link></li>
-          <li><Link to="/rooms">Номера</Link></li>
-          <li><Link to="/services">Услуги</Link></li>
+            <li><Link to="/rooms">НОМЕРА</Link></li>
+            <li><Link to="/services">УСЛУГИ</Link></li>
+            <li><Link to="/contacts">КОНТАКТЫ</Link></li>
+        </ul>
+      </nav>
 
-
+      <div className='auth-nav'>
+        <ul>
           {/* Если НЕ авторизован - показываем регистрацию/вход */}
           {!isAuth ? (
             <>
-              <li><Link to="/register">Регистрация</Link></li>
-              <li><Link to="/login">Вход</Link></li>
-              
+              <button onClick={handleLogin} className="button login-button">
+                  Войти
+                </button>
+                <button onClick={handleLogout} className="button book-button">
+                  Зарегистрироваться
+                </button>
             </>
           ) : (
             <>
@@ -62,7 +79,8 @@ const Header = () => {
             </>
           )}
         </ul>
-      </nav>
+      </div>
+      </div>
     </header>
   );
 };

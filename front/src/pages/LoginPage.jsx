@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import useUserStore from '../store/UserStore'; // Импортируем наше хранилище
 import '../styles/LoginPage.css';
+import bg from '../assets/images/номера.png'; 
+
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -42,6 +44,9 @@ const LoginPage = () => {
 
   return (
     <div className="login-container">
+      <div className="bg">
+        <img src={bg} alt="" className="bg" />
+      </div>
       <form onSubmit={handleSubmit} className="login-form">
         <h2>Вход</h2>
         {error && <div className="error-message">{error}</div>}
