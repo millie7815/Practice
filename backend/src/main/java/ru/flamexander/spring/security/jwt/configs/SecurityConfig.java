@@ -36,7 +36,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private final UserDetailsService userDetailsService;
     private final JwtRequestFilter jwtRequestFilter;
 
-
     @Autowired
     public SecurityConfig(@Lazy UserDetailsService userDetailsService, JwtRequestFilter jwtRequestFilter) {
         this.userDetailsService = userDetailsService;
@@ -54,13 +53,15 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 .authorizeRequests()
                 .antMatchers("/public/**").permitAll()
-                .antMatchers("/api/auth/**").permitAll()
+                .antMatchers("/api/auth/**").permitAll() // Разрешаем доступ к /api/auth/** без аутентификации
                 .antMatchers("/api/services/**").permitAll()
                 .antMatchers("/private/**").authenticated()
+                .antMatchers("/api/auth/me").authenticated() // Требуем аутентификацию для /api/auth/me
+                .antMatchers("/api/users/profile/**").authenticated() // Добавьте это правило
                 .anyRequest().denyAll()
                 .and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and() // обрабатывать JWT токены. Это означает, что запросы к защищённым эндпоинтам (/private/**) не будут проверяться на наличие валидного токена.
+                .and()
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
     }
 
@@ -87,9 +88,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
-
-    //При авторизации ошибка выходила, поэтому добавили этот код
-    // Хотя вы включили CORS (.cors()), но не предоставили конфигурацию для него. Вам нужно добавить @Bean для CORS конфигурации.
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -102,5 +100,4 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
 }

@@ -78,19 +78,9 @@ public class RoleService {
         roleRepository.delete(role);
     }
 
-
-
-    public Optional<Role> getRoleByName(String roleName) {
-        return roleRepository.findByName(roleName);
+    public Optional<Role> findByName(String name) {
+        return roleRepository.findByName(name);
     }
-
-    public Integer getRoleIdByName(String roleName) {
-        return roleRepository.findByName(roleName)
-                .map(Role::getId)
-                .orElseThrow(() -> new RuntimeException("Роль не найдена"));
-    }
-
-
 
 
 }

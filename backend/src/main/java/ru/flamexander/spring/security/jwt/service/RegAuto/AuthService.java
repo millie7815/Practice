@@ -1,5 +1,7 @@
 package ru.flamexander.spring.security.jwt.service.RegAuto;
 
+import ru.flamexander.spring.security.jwt.service.UserService; // Добавьте эту строку
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +17,7 @@ import ru.flamexander.spring.security.jwt.dtos.RegistrationUserDto;
 import ru.flamexander.spring.security.jwt.dtos.UserDto;
 import ru.flamexander.spring.security.jwt.entities.User;
 import ru.flamexander.spring.security.jwt.exceptions.AppError;
-import ru.flamexander.spring.security.jwt.service.UserService;
+
 import ru.flamexander.spring.security.jwt.utils.JwtTokenUtils;
 
 @Service

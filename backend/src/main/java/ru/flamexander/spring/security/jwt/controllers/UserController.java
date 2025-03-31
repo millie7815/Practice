@@ -1,8 +1,13 @@
 package ru.flamexander.spring.security.jwt.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import ru.flamexander.spring.security.jwt.dtos.UserDto;
 import ru.flamexander.spring.security.jwt.entities.User;
 import ru.flamexander.spring.security.jwt.service.UserService;
 
@@ -36,4 +41,30 @@ public class UserController {
             return ResponseEntity.notFound().build(); // Возвращаем 404 Not Found, если пользователь не найден
         }
     }
+
+    @PutMapping("/profile/{id}")
+    public ResponseEntity<User> updateUserProfile(@PathVariable Long id, @RequestBody UserDto userDto) {
+        // Получаем текущего аутентифицированного пользователя
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) auth.getPrincipal();
+
+        // Извлекаем пользователя из Optional
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        Long currentUserId = currentUser.getId();
+
+        // Проверяем, совпадает ли ID из запроса с ID текущего пользователя
+        if (!currentUserId.equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null); // 403, если не совпадает
+        }
+
+        // Обновляем профиль
+        User updatedUser = userService.updateUserProfile(id, userDto.getFirstName(), userDto.getLastName());
+        if (updatedUser != null) {
+            return ResponseEntity.ok(updatedUser);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }
+

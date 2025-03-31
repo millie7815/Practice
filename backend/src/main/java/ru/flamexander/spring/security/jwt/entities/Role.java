@@ -4,7 +4,7 @@ import lombok.Data;
 
 import javax.persistence.*;
 import java.util.ArrayList;
-import java.util.Collection;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
 @Entity
@@ -20,6 +20,7 @@ public class Role {
     private String name;
 
     // Если нужна двусторонняя связь
+    @JsonIgnore
     @OneToMany(mappedBy = "role", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<User> users = new ArrayList<>();
 }

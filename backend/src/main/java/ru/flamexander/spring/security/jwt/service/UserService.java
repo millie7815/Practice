@@ -1,8 +1,9 @@
 package ru.flamexander.spring.security.jwt.service;
-import lombok.RequiredArgsConstructor;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -10,29 +11,59 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.flamexander.spring.security.jwt.configs.CustomUserDetails;
 import ru.flamexander.spring.security.jwt.dtos.RegistrationUserDto;
 import ru.flamexander.spring.security.jwt.entities.Role;
 import ru.flamexander.spring.security.jwt.entities.User;
 import ru.flamexander.spring.security.jwt.repositories.UserRepository;
 
+import javax.annotation.PostConstruct;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+
 @Service
 public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
-    public boolean existsByUsername(String username) {
-        return findByUsername(username).isPresent();
-    }
+
+    // Новое: параметры администратора из application.properties
+    @Value("${admin.username}")
+    private String adminUsername;
+
+    @Value("${admin.password}")
+    private String adminPassword;
+
+    @Value("${admin.email}")
+    private String adminEmail;
+
+    @Value("${admin.role}")
+    private String adminRole;
 
     @Autowired
     public UserService(UserRepository userRepository, RoleService roleService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleService = roleService;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    // Новое: создание администратора при запуске приложения
+    @PostConstruct
+    public void initAdmin() {
+        if (!userRepository.findByUsername(adminUsername).isPresent()) {
+            User admin = new User();
+            admin.setUsername(adminUsername);
+            admin.setEmail(adminEmail);
+            admin.setPassword(adminPassword); // Пароль уже захеширован в properties
+
+            Role adminRoleEntity = roleService.findByName(adminRole)
+                    .orElseThrow(() -> new RuntimeException("Роль администратора не найдена"));
+            admin.setRole(adminRoleEntity);
+
+            userRepository.save(admin);
+            System.out.println("Администратор успешно создан");
+        }
     }
 
     public Optional<User> findByUsername(String username) {
@@ -46,20 +77,10 @@ public class UserService implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = findByUsername(username).orElseThrow(() -> new UsernameNotFoundException(
-                String.format("Пользователь '%s' не найден", username)
-        ));
-
-        Role role = user.getRole(); // Получаем роль напрямую через связь
-        if (role == null) {
-            throw new RuntimeException("Роль не найдена");
-        }
-
-        return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority(role.getName()))
-        );
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        String.format("Пользователь '%s' не найден", username)));
+        return new CustomUserDetails(user);
     }
 
     public User createNewUser(RegistrationUserDto registrationUserDto) {
@@ -68,9 +89,8 @@ public class UserService implements UserDetailsService {
         user.setEmail(registrationUserDto.getEmail());
         user.setPassword(passwordEncoder.encode(registrationUserDto.getPassword()));
 
-        // Установка роли USER по умолчанию
         Role userRole = roleService.getUserRole();
-        user.setRole(userRole); // Используем setRole вместо setRoleId
+        user.setRole(userRole);
 
         return userRepository.save(user);
     }
@@ -78,9 +98,9 @@ public class UserService implements UserDetailsService {
     public boolean deleteById(Long id) {
         if (userRepository.existsById(id)) {
             userRepository.deleteById(id);
-            return true; // Удаление прошло успешно
+            return true;
         }
-        return false; // Пользователь не найден
+        return false;
     }
 
     public User updateUser(Long id, User userDetails) {
@@ -89,11 +109,21 @@ public class UserService implements UserDetailsService {
             User userToUpdate = optionalUser.get();
             userToUpdate.setUsername(userDetails.getUsername());
             userToUpdate.setEmail(userDetails.getEmail());
-            // Обновите другие поля по мере необходимости
             return userRepository.save(userToUpdate);
         }
-        return null; // Или выбросьте исключение, если пользователь не найден
+        return null;
     }
+    public User updateUserProfile(Long id, String firstName, String lastName) {
+        Optional<User> optionalUser = userRepository.findById(id);
+        if (optionalUser.isPresent()) {
+            User userToUpdate = optionalUser.get();
+            userToUpdate.setFirstName(firstName);
+            userToUpdate.setLastName(lastName);
+            return userRepository.save(userToUpdate);
+        }
+        return null;
+    }
+
 }
 
 //    @Override

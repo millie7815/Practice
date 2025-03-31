@@ -27,5 +27,12 @@ public class User {
     @JoinColumn(name = "role_id")
     private Role role;
 
+    @Column(name = "firstName")
+    private String firstName;
+
+
+    @Column(name = "lastName")
+    private String lastName;
+
 }
 

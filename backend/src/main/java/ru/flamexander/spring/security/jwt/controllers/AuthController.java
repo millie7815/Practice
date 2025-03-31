@@ -1,6 +1,5 @@
 package ru.flamexander.spring.security.jwt.controllers;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -15,21 +14,20 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import ru.flamexander.spring.security.jwt.configs.CustomUserDetails;
 import ru.flamexander.spring.security.jwt.dtos.JwtRequest;
 import ru.flamexander.spring.security.jwt.dtos.JwtResponse;
 import ru.flamexander.spring.security.jwt.dtos.RegistrationUserDto;
 import ru.flamexander.spring.security.jwt.dtos.UserDto;
+import ru.flamexander.spring.security.jwt.entities.User;
 import ru.flamexander.spring.security.jwt.service.RegAuto.AuthService;
 import org.springframework.validation.FieldError;
 import ru.flamexander.spring.security.jwt.utils.JwtTokenUtils;
 
-
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.stream.Collectors;
-
 
 @Slf4j
 @RestController
@@ -64,7 +62,6 @@ public class AuthController {
         return authService.createNewUser(registrationUserDto);
     }
 
-
     @GetMapping("/check")
     public ResponseEntity<?> checkAuth() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -73,7 +70,6 @@ public class AuthController {
         }
         return ResponseEntity.status(401).build();
     }
-
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody JwtRequest authRequest, HttpServletResponse response) {
@@ -129,8 +125,23 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         return ResponseEntity.ok("Выход выполнен успешно");
     }
-}
 
+    @GetMapping("/me")
+    public ResponseEntity<UserDto> getCurrentUser() {
+        // Получаем объект аутентификации из контекста безопасности
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        // Проверяем, что пользователь аутентифицирован и это не анонимный доступ
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+            User user = userDetails.getUser();
+            // Новое: добавляем роль в UserDto
+            UserDto userDto = new UserDto(user.getId(), user.getUsername(), user.getEmail(), user.getRole().getName());
+            return ResponseEntity.ok(userDto);
+        }
+        // Если пользователь не аутентифицирован, возвращаем 401 Unauthorized
+        return ResponseEntity.status(401).build();
+    }
+}
 
 
 
